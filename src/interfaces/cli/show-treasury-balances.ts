@@ -3,7 +3,6 @@ import { loadCircleTreasuryConfig } from "../../config/circle-treasury.config.js
 import { CircleTreasuryWalletAdapter } from "../../infrastructure/circle/circle-treasury-wallet.adapter.js";
 
 async function main(): Promise<void> {
-  // Composition root: this is where abstract application code receives a concrete adapter.
   const config = loadCircleTreasuryConfig();
   const treasuryWallet = new CircleTreasuryWalletAdapter(config);
   const getTreasurySnapshot = new GetTreasurySnapshot(treasuryWallet);

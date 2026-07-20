@@ -124,11 +124,20 @@ Application code depends on a treasury-wallet interface rather than directly on
 the Circle SDK. The Circle adapter owns SDK initialization, request idempotency,
 response validation, error translation, and transaction-status polling.
 
+Read and write capabilities use separate ports. `TreasuryWalletPort` exposes
+wallet identity and balances, while `TreasuryPaymentPort` is the narrower,
+security-sensitive capability that can submit USDC transfers. An interface that
+only needs to display balances should never receive the payment port.
+
 ### Arc reconciliation is independent
 
 Submitting a Circle transaction is not proof of settlement. An Arc reconciler
 verifies the transaction receipt and expected Memo, vault, and USDC events
 before marking a payment settled.
+
+Public Arc reads use `viem` with the official Arc Testnet RPC endpoints as a
+fallback set. Reconciliation requires a successful receipt and an exact USDC
+`Transfer` event match; Circle state or a transaction hash alone is insufficient.
 
 ### Arc USDC has one canonical application balance
 
@@ -163,6 +172,9 @@ general-purpose contract security components.
 - Idempotency keys are durable application data. Payment idempotency records
   will be stored transactionally with payment attempts rather than generated
   transiently in a request handler.
+- During the external integration spike, ignored `local-state/` records persist
+  each test-transfer payload and idempotency key before Circle is called. This is
+  crash-safe retry scaffolding, not the final system of record.
 - Raw invoices remain private and offchain. Only hashes and deliberately chosen
   receipt identifiers are eligible for onchain metadata.
 
@@ -178,3 +190,5 @@ general-purpose contract security components.
    service split.
 6. Use strict TypeScript for all offchain product code, Solidity for Arc smart
    contracts, and migration-managed SQL for persistent state.
+7. Separate treasury observation from payment authority through distinct
+   application ports.

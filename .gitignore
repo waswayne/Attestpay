@@ -9,6 +9,7 @@ node_modules/
 dist/
 coverage/
 *.log
+local-state/
 
 # Private workspace instructions and planning documents
 AGENTS.md

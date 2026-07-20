@@ -10,10 +10,13 @@
     "circle:generate-secret": "tsx scripts/circle/generate-entity-secret.ts",
     "circle:register-secret": "node --env-file=.env.local --import=tsx scripts/circle/register-entity-secret.ts",
     "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts",
-    "circle:balances": "node --env-file=.env.local --import=tsx src/interfaces/cli/show-treasury-balances.ts"
+    "circle:create-recipient": "node --env-file=.env.local --import=tsx scripts/circle/create-test-recipient.ts",
+    "circle:balances": "node --env-file=.env.local --import=tsx src/interfaces/cli/show-treasury-balances.ts",
+    "circle:send-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-transfer.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.0",
+    "viem": "^2.55.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

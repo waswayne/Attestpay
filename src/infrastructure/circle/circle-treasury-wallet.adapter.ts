@@ -7,6 +7,7 @@ import type {
   TreasuryWalletPort,
 } from "../../application/ports/treasury-wallet.port.js";
 import type { CircleTreasuryConfig } from "../../config/circle-treasury.config.js";
+import { evmAddressSchema } from "../../shared/validation/evm.js";
 import { ARC_TESTNET_USDC_ADDRESS } from "../arc/arc-testnet.constants.js";
 
 type DeveloperWalletsClient = ReturnType<
@@ -17,11 +18,6 @@ export type CircleTreasuryWalletClient = Pick<
   DeveloperWalletsClient,
   "getWallet" | "getWalletTokenBalance"
 >;
-
-const evmAddressSchema = z
-  .string()
-  .regex(/^0x[a-fA-F0-9]{40}$/)
-  .transform((value) => value as `0x${string}`);
 
 const walletSchema = z.object({
   id: z.string().uuid(),
@@ -56,9 +52,6 @@ export class CircleTreasuryAdapterError extends Error {
   }
 }
 
-/**
- * Circle-specific implementation of the application-owned treasury port.
- */
 export class CircleTreasuryWalletAdapter implements TreasuryWalletPort {
   private readonly client: CircleTreasuryWalletClient;
 

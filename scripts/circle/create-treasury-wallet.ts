@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
+import { isAddress, isHex, size } from "viem";
+import { saveLocalEnvironmentValue } from "./local-environment-file.js";
 
 type TreasuryWallet = {
   id: string;
@@ -10,7 +11,6 @@ type TreasuryWallet = {
   walletSetId: string;
 };
 
-const environmentFile = new URL("../../.env.local", import.meta.url);
 const apiKey = process.env.CIRCLE_API_KEY?.trim();
 const entitySecret = process.env.CIRCLE_ENTITY_SECRET?.trim();
 
@@ -18,31 +18,12 @@ if (!apiKey?.startsWith("TEST_API_KEY:")) {
   throw new Error("CIRCLE_API_KEY must be a Circle Testnet API key.");
 }
 
-if (!entitySecret || !/^[a-fA-F0-9]{64}$/.test(entitySecret)) {
+if (
+  !entitySecret ||
+  !isHex(`0x${entitySecret}`) ||
+  size(`0x${entitySecret}`) !== 32
+) {
   throw new Error("CIRCLE_ENTITY_SECRET must be a 64-character hexadecimal value.");
-}
-
-let environmentContents = await readFile(environmentFile, "utf8");
-
-async function saveEnvironmentValue(name: string, value: string): Promise<void> {
-  if (!value || /[\r\n]/.test(value)) {
-    throw new Error(`Refusing to save an invalid ${name} value.`);
-  }
-
-  const linePattern = new RegExp(`^${name}=.*$`, "m");
-  if (linePattern.test(environmentContents)) {
-    environmentContents = environmentContents.replace(linePattern, `${name}=${value}`);
-  } else {
-    if (environmentContents && !environmentContents.endsWith("\n")) {
-      environmentContents += "\n";
-    }
-    environmentContents += `${name}=${value}\n`;
-  }
-
-  await writeFile(environmentFile, environmentContents, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
 }
 
 async function getOrCreateIdempotencyKey(name: string): Promise<string> {
@@ -52,7 +33,7 @@ async function getOrCreateIdempotencyKey(name: string): Promise<string> {
   }
 
   const newKey = randomUUID();
-  await saveEnvironmentValue(name, newKey);
+  await saveLocalEnvironmentValue(name, newKey);
   return newKey;
 }
 
@@ -77,7 +58,7 @@ if (!walletSetId) {
     throw new Error("Circle created no verifiable wallet-set ID.");
   }
 
-  await saveEnvironmentValue("CIRCLE_WALLET_SET_ID", walletSetId);
+  await saveLocalEnvironmentValue("CIRCLE_WALLET_SET_ID", walletSetId);
   console.log(`Created wallet set: ${walletSetId}`);
 } else {
   const response = await client.getWalletSet({ id: walletSetId });
@@ -118,7 +99,7 @@ if (!walletId) {
 
   wallet = createdWallet;
   walletId = wallet.id;
-  await saveEnvironmentValue("CIRCLE_WALLET_ID", walletId);
+  await saveLocalEnvironmentValue("CIRCLE_WALLET_ID", walletId);
 } else {
   const response = await client.getWallet({ id: walletId });
   wallet = response.data?.wallet;
@@ -138,11 +119,11 @@ if (wallet.blockchain !== "ARC-TESTNET" || wallet.accountType !== "EOA") {
   );
 }
 
-if (!/^0x[a-fA-F0-9]{40}$/.test(wallet.address)) {
+if (!isAddress(wallet.address, { strict: false })) {
   throw new Error("Circle returned an invalid EVM wallet address.");
 }
 
-await saveEnvironmentValue("CIRCLE_WALLET_ADDRESS", wallet.address);
+await saveLocalEnvironmentValue("CIRCLE_WALLET_ADDRESS", wallet.address);
 
 console.log("AttestPay treasury wallet is ready:");
 console.log(`  Wallet ID: ${wallet.id}`);

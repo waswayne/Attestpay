@@ -94,7 +94,9 @@ onchain.
 | Circle wallet set and `ARC-TESTNET` EOA | Complete |
 | Typed treasury port, Circle adapter, balance use case, and unit tests | Complete |
 | Live Circle wallet and balance verification | Complete |
-| Testnet funding and basic USDC transfer | Next |
+| Testnet funding and canonical USDC balance | Complete |
+| Controlled recipient and idempotent USDC transfer path | Live verified |
+| Independent Arc receipt and USDC event reconciliation | Complete |
 | Arc memo compatibility spike | Not started |
 | `AttestPayVault` contract | Not started |
 | Policy engine, API, database, and UI | Not started |
@@ -199,6 +201,26 @@ address in `.env.local`. It persists Circle idempotency keys before making each
 creation request, allowing the same operation to be retried safely after a
 timeout without intentionally creating duplicate resources.
 
+Create or verify a separate Circle-controlled Arc Testnet recipient:
+
+```bash
+npm run circle:create-recipient
+```
+
+Submit a deliberately small transfer by assigning it a stable operation ID:
+
+```bash
+npm run circle:send-test -- first-transfer 0.01
+```
+
+The command persists the exact payload and Circle idempotency key under the
+ignored `local-state/` directory before submitting. Repeating the same command
+resumes the same Circle transaction; reusing the operation ID with a different
+amount or recipient fails closed. After Circle returns a transaction hash, the
+command independently reads the Arc receipt and accepts settlement only when a
+successful receipt contains the exact expected USDC sender, recipient, and
+amount event.
+
 ## Available Commands
 
 | Command | Purpose |
@@ -208,7 +230,9 @@ timeout without intentionally creating duplicate resources.
 | `npm run circle:generate-secret` | Generate an entity secret and store it in `.env.local` without printing it |
 | `npm run circle:register-secret` | Register the entity secret with Circle and create recovery material |
 | `npm run circle:create-wallet` | Create or verify the AttestPay wallet set and `ARC-TESTNET` EOA |
+| `npm run circle:create-recipient` | Create or verify the controlled Arc Testnet recipient |
 | `npm run circle:balances` | Validate the configured treasury and list Circle-indexed balances |
+| `npm run circle:send-test -- <operation-id> <amount>` | Submit or resume one idempotent controlled USDC transfer |
 
 ## Security Model
 
@@ -261,8 +285,9 @@ Circle and Arc are platforms rather than programming languages. TypeScript owns
 the offchain system, Solidity owns the EVM contract, and SQL owns persistent
 data definitions.
 
-Technology choices beyond the installed Circle SDK remain proposed until their
-implementation milestone begins.
+The Circle SDK and `viem` are installed and exercised by live integration
+paths. Remaining technologies stay proposed until their implementation
+milestone begins.
 
 ## Official References
 

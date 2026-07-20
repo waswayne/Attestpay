@@ -21,9 +21,6 @@ export type TreasuryAssetBalance = Readonly<{
   tokenAddress: `0x${string}` | null;
 }>;
 
-/**
- * Application-owned contract implemented by a treasury provider adapter.
- */
 export interface TreasuryWalletPort {
   getDetails(): Promise<TreasuryWalletDetails>;
   listBalances(): Promise<readonly TreasuryAssetBalance[]>;

@@ -1,5 +1,6 @@
 import { mkdir, readdir } from "node:fs/promises";
 import { registerEntitySecretCiphertext } from "@circle-fin/developer-controlled-wallets";
+import { isHex, size } from "viem";
 
 const apiKey = process.env.CIRCLE_API_KEY?.trim();
 const entitySecret = process.env.CIRCLE_ENTITY_SECRET?.trim();
@@ -12,7 +13,11 @@ if (!apiKey.startsWith("TEST_API_KEY:")) {
   throw new Error("Refusing to continue: this command requires a Circle Testnet API key.");
 }
 
-if (!entitySecret || !/^[a-fA-F0-9]{64}$/.test(entitySecret)) {
+if (
+  !entitySecret ||
+  !isHex(`0x${entitySecret}`) ||
+  size(`0x${entitySecret}`) !== 32
+) {
   throw new Error("CIRCLE_ENTITY_SECRET must be a 64-character hexadecimal value.");
 }
 
