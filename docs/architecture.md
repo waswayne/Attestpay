@@ -130,6 +130,14 @@ Submitting a Circle transaction is not proof of settlement. An Arc reconciler
 verifies the transaction receipt and expected Memo, vault, and USDC events
 before marking a payment settled.
 
+### Arc USDC has one canonical application balance
+
+Arc exposes one underlying USDC balance through a native gas interface and an
+ERC-20 interface. Infrastructure adapters remove the duplicate native view when
+the ERC-20 view is present. Application accounting, transfers, approvals, and
+allowances use the standard 6-decimal ERC-20 interface; native precision remains
+an infrastructure concern for gas estimation and transaction construction.
+
 ## Existing External Capabilities We Reuse
 
 - Circle's developer-controlled wallet SDK handles entity-secret ciphertext

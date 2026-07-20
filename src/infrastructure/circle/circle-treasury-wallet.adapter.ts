@@ -7,6 +7,16 @@ import type {
   TreasuryWalletPort,
 } from "../../application/ports/treasury-wallet.port.js";
 import type { CircleTreasuryConfig } from "../../config/circle-treasury.config.js";
+import { ARC_TESTNET_USDC_ADDRESS } from "../arc/arc-testnet.constants.js";
+
+type DeveloperWalletsClient = ReturnType<
+  typeof initiateDeveloperControlledWalletsClient
+>;
+
+export type CircleTreasuryWalletClient = Pick<
+  DeveloperWalletsClient,
+  "getWallet" | "getWalletTokenBalance"
+>;
 
 const evmAddressSchema = z
   .string()
@@ -50,13 +60,18 @@ export class CircleTreasuryAdapterError extends Error {
  * Circle-specific implementation of the application-owned treasury port.
  */
 export class CircleTreasuryWalletAdapter implements TreasuryWalletPort {
-  private readonly client;
+  private readonly client: CircleTreasuryWalletClient;
 
-  constructor(private readonly config: CircleTreasuryConfig) {
-    this.client = initiateDeveloperControlledWalletsClient({
-      apiKey: config.apiKey,
-      entitySecret: config.entitySecret,
-    });
+  constructor(
+    private readonly config: CircleTreasuryConfig,
+    client?: CircleTreasuryWalletClient,
+  ) {
+    this.client =
+      client ??
+      initiateDeveloperControlledWalletsClient({
+        apiKey: config.apiKey,
+        entitySecret: config.entitySecret,
+      });
   }
 
   async getDetails(): Promise<TreasuryWalletDetails> {
@@ -114,19 +129,34 @@ export class CircleTreasuryWalletAdapter implements TreasuryWalletPort {
         throw new Error("Circle returned an invalid token-balance response.");
       }
 
-      return Object.freeze(
-        parsed.data.map((balance) =>
-          Object.freeze({
-            tokenId: balance.token.id,
-            amount: balance.amount,
-            symbol: balance.token.symbol ?? null,
-            name: balance.token.name ?? null,
-            decimals: balance.token.decimals ?? null,
-            isNative: balance.token.isNative,
-            tokenAddress: balance.token.tokenAddress ?? null,
-          }),
-        ),
+      const mappedBalances: TreasuryAssetBalance[] = parsed.data.map((balance) =>
+        Object.freeze({
+          tokenId: balance.token.id,
+          amount: balance.amount,
+          symbol: balance.token.symbol ?? null,
+          name: balance.token.name ?? null,
+          decimals: balance.token.decimals ?? null,
+          isNative: balance.token.isNative,
+          tokenAddress: balance.token.tokenAddress ?? null,
+        }),
       );
+
+      const hasErc20Usdc = mappedBalances.some(
+        (balance) =>
+          balance.tokenAddress?.toLowerCase() ===
+          ARC_TESTNET_USDC_ADDRESS.toLowerCase(),
+      );
+
+      // Arc native USDC and its ERC-20 interface share one underlying balance.
+      // When Circle returns both views, keep only the ERC-20 accounting view.
+      const canonicalBalances = hasErc20Usdc
+        ? mappedBalances.filter(
+            (balance) =>
+              !(balance.isNative && balance.symbol?.toUpperCase() === "USDC"),
+          )
+        : mappedBalances;
+
+      return Object.freeze(canonicalBalances);
     } catch (error: unknown) {
       throw new CircleTreasuryAdapterError("balance lookup", requestId, {
         cause: error,
