@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { CircleTreasuryConfig } from "../../../src/config/circle-treasury.config.js";
 import { ARC_TESTNET_USDC_ADDRESS } from "../../../src/infrastructure/arc/arc-testnet.constants.js";
+import { ARC_MEMO_ADDRESS } from "../../../src/infrastructure/arc/arc-memo.js";
 import {
   CircleTreasuryPaymentAdapter,
   type CircleTreasuryPaymentClient,
@@ -84,4 +85,41 @@ test("waits for and validates the Arc transaction hash", async () => {
   assert.equal(waitForTxHash, true);
   assert.equal(result.transactionHash, transactionHash);
   assert.equal(result.state, "SENT");
+});
+
+test("submits an Arc memo as a Circle contract execution", async () => {
+  let request: Record<string, unknown> | undefined;
+  const client = {
+    async createContractExecutionTransaction(input: Record<string, unknown>) {
+      request = input;
+      return {
+        data: {
+          id: "44444444-4444-4444-8444-444444444444",
+          state: "INITIATED",
+        },
+      };
+    },
+    async createTransaction() {
+      throw new Error("not used");
+    },
+    async getTransaction() {
+      throw new Error("not used");
+    },
+  } as unknown as CircleTreasuryPaymentClient;
+
+  const adapter = new CircleTreasuryPaymentAdapter(config, client);
+  const result = await adapter.submitMemoUsdcTransfer({
+    idempotencyKey: "55555555-5555-4555-8555-555555555555",
+    destinationAddress: "0x2222222222222222222222222222222222222222",
+    amount: "0.01",
+    reference: "attestpay:memo:memo-transfer-001",
+    authorizationReference: "auth-001",
+  });
+
+  assert.equal(result.state, "INITIATED");
+  assert.equal(request?.walletAddress, config.walletAddress);
+  assert.equal(request?.blockchain, "ARC-TESTNET");
+  assert.equal(request?.contractAddress, ARC_MEMO_ADDRESS);
+  assert.equal(typeof request?.callData, "string");
+  assert.equal(request?.abiFunctionSignature, undefined);
 });

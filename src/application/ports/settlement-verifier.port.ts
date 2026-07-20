@@ -14,8 +14,26 @@ export type UsdcSettlementEvidence = Readonly<{
   amount: string;
 }>;
 
+export type VerifyMemoUsdcSettlement = VerifyUsdcSettlement &
+  Readonly<{
+    memoId: `0x${string}`;
+    memoData: `0x${string}`;
+    transferCallDataHash: `0x${string}`;
+  }>;
+
+export type MemoUsdcSettlementEvidence = UsdcSettlementEvidence &
+  Readonly<{
+    memoId: `0x${string}`;
+    memoIndex: string;
+    memoLogIndex: number;
+  }>;
+
 export interface SettlementVerifierPort {
   verifyUsdcSettlement(
     expected: VerifyUsdcSettlement,
   ): Promise<UsdcSettlementEvidence>;
+
+  verifyMemoUsdcSettlement(
+    expected: VerifyMemoUsdcSettlement,
+  ): Promise<MemoUsdcSettlementEvidence>;
 }

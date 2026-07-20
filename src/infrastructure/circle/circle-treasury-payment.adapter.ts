@@ -3,6 +3,7 @@ import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-
 import { z } from "zod";
 import type {
   SubmitUsdcTransfer,
+  SubmitMemoUsdcTransfer,
   TreasuryPaymentPort,
   TreasuryPaymentStatus,
   TreasuryPaymentSubmission,
@@ -10,6 +11,10 @@ import type {
 import type { CircleTreasuryConfig } from "../../config/circle-treasury.config.js";
 import { transactionHashSchema } from "../../shared/validation/evm.js";
 import { ARC_TESTNET_USDC_ADDRESS } from "../arc/arc-testnet.constants.js";
+import {
+  ARC_MEMO_ADDRESS,
+  prepareArcMemoTransfer,
+} from "../arc/arc-memo.js";
 
 type DeveloperWalletsClient = ReturnType<
   typeof initiateDeveloperControlledWalletsClient
@@ -17,7 +22,7 @@ type DeveloperWalletsClient = ReturnType<
 
 export type CircleTreasuryPaymentClient = Pick<
   DeveloperWalletsClient,
-  "createTransaction" | "getTransaction"
+  "createContractExecutionTransaction" | "createTransaction" | "getTransaction"
 >;
 
 const transactionStateSchema = z.enum([
@@ -103,6 +108,49 @@ export class CircleTreasuryPaymentAdapter implements TreasuryPaymentPort {
       throw new CircleTreasuryPaymentError("transfer submission", requestId, {
         cause: error,
       });
+    }
+  }
+
+  async submitMemoUsdcTransfer(
+    transfer: SubmitMemoUsdcTransfer,
+  ): Promise<TreasuryPaymentSubmission> {
+    const requestId = randomUUID();
+    const memo = prepareArcMemoTransfer({
+      recipientAddress: transfer.destinationAddress,
+      amount: transfer.amount,
+      authorizationReference: transfer.authorizationReference,
+    });
+
+    try {
+      const response = await this.client.createContractExecutionTransaction({
+        walletAddress: this.config.walletAddress,
+        blockchain: "ARC-TESTNET",
+        contractAddress: ARC_MEMO_ADDRESS,
+        callData: memo.contractCallData,
+        refId: transfer.reference,
+        idempotencyKey: transfer.idempotencyKey,
+        fee: {
+          type: "level",
+          config: { feeLevel: "MEDIUM" },
+        },
+        xRequestId: requestId,
+      });
+
+      const parsed = submissionSchema.safeParse(response.data);
+      if (!parsed.success) {
+        throw new Error("Circle returned an invalid memo-transfer response.");
+      }
+
+      return Object.freeze({
+        transactionId: parsed.data.id,
+        state: parsed.data.state,
+      });
+    } catch (error: unknown) {
+      throw new CircleTreasuryPaymentError(
+        "memo-transfer submission",
+        requestId,
+        { cause: error },
+      );
     }
   }
 

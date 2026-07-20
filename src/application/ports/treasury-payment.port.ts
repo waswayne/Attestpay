@@ -17,6 +17,11 @@ export type SubmitUsdcTransfer = Readonly<{
   reference: string;
 }>;
 
+export type SubmitMemoUsdcTransfer = SubmitUsdcTransfer &
+  Readonly<{
+    authorizationReference: string;
+  }>;
+
 export type TreasuryPaymentSubmission = Readonly<{
   transactionId: string;
   state: TreasuryTransactionState;
@@ -36,6 +41,10 @@ export type TreasuryPaymentStatus = TreasuryPaymentSubmission &
 export interface TreasuryPaymentPort {
   submitUsdcTransfer(
     transfer: SubmitUsdcTransfer,
+  ): Promise<TreasuryPaymentSubmission>;
+
+  submitMemoUsdcTransfer(
+    transfer: SubmitMemoUsdcTransfer,
   ): Promise<TreasuryPaymentSubmission>;
 
   waitForTransactionHash(

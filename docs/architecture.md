@@ -139,6 +139,18 @@ Public Arc reads use `viem` with the official Arc Testnet RPC endpoints as a
 fallback set. Reconciliation requires a successful receipt and an exact USDC
 `Transfer` event match; Circle state or a transaction hash alone is insufficient.
 
+### Memo identifiers expose no private invoice data
+
+Memo-linked transfers call Arc Testnet's predeployed Memo contract at
+`0x5294E9927c3306DcBaDb03fe70b92e01cCede505`. AttestPay derives the indexed
+`memoId` as the Keccak-256 hash of a versioned, domain-separated authorization
+reference. The public memo payload contains only the format marker
+`attestpay:authorization:v1`; private invoice and approval data remains offchain.
+
+Reconciliation verifies the ordered `BeforeMemo`, USDC `Transfer`, and `Memo`
+events, including the original EOA sender, USDC target, transfer calldata hash,
+memo ID, memo bytes, recipient, and amount.
+
 ### Arc USDC has one canonical application balance
 
 Arc exposes one underlying USDC balance through a native gas interface and an

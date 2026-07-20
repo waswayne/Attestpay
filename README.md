@@ -97,7 +97,7 @@ onchain.
 | Testnet funding and canonical USDC balance | Complete |
 | Controlled recipient and idempotent USDC transfer path | Live verified |
 | Independent Arc receipt and USDC event reconciliation | Complete |
-| Arc memo compatibility spike | Not started |
+| Arc memo encoding, Circle submission, and event reconciliation | Live verified |
 | `AttestPayVault` contract | Not started |
 | Policy engine, API, database, and UI | Not started |
 
@@ -221,6 +221,19 @@ command independently reads the Arc receipt and accepts settlement only when a
 successful receipt contains the exact expected USDC sender, recipient, and
 amount event.
 
+Submit a small memo-linked transfer with separate operation and authorization
+references:
+
+```bash
+npm run circle:send-memo-test -- memo-transfer-001 0.01 auth-001
+```
+
+The operation ID controls safe retries. The authorization reference identifies
+the offchain approval record. AttestPay hashes the authorization reference into
+a 32-byte `memoId`; it does not publish the invoice, vendor details, approval
+notes, or other private business data. Settlement requires the ordered Arc
+events `BeforeMemo -> Transfer -> Memo` to match the expected payment.
+
 ## Available Commands
 
 | Command | Purpose |
@@ -233,6 +246,7 @@ amount event.
 | `npm run circle:create-recipient` | Create or verify the controlled Arc Testnet recipient |
 | `npm run circle:balances` | Validate the configured treasury and list Circle-indexed balances |
 | `npm run circle:send-test -- <operation-id> <amount>` | Submit or resume one idempotent controlled USDC transfer |
+| `npm run circle:send-memo-test -- <operation-id> <amount> <authorization-reference>` | Submit, resume, and reconcile one memo-linked USDC transfer |
 
 ## Security Model
 

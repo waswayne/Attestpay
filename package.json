@@ -12,7 +12,8 @@
     "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts",
     "circle:create-recipient": "node --env-file=.env.local --import=tsx scripts/circle/create-test-recipient.ts",
     "circle:balances": "node --env-file=.env.local --import=tsx src/interfaces/cli/show-treasury-balances.ts",
-    "circle:send-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-transfer.ts"
+    "circle:send-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-transfer.ts",
+    "circle:send-memo-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-memo-transfer.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.0",

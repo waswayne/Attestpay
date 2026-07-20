@@ -53,6 +53,9 @@ function createPayments(onSubmit: (input: SubmitUsdcTransfer) => void): Treasury
         state: "INITIATED",
       };
     },
+    async submitMemoUsdcTransfer() {
+      throw new Error("not used by this use case");
+    },
     async waitForTransactionHash() {
       throw new Error("not used by this use case");
     },
