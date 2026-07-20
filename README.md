@@ -92,7 +92,9 @@ onchain.
 | Testnet API key and entity-secret registration workflow | Complete |
 | Recovery-file generation and local safety checks | Complete |
 | Circle wallet set and `ARC-TESTNET` EOA | Complete |
-| Testnet funding and basic USDC transfer | Not started |
+| Typed treasury port, Circle adapter, balance use case, and unit tests | Complete |
+| Live Circle wallet and balance verification | Complete |
+| Testnet funding and basic USDC transfer | Next |
 | Arc memo compatibility spike | Not started |
 | `AttestPayVault` contract | Not started |
 | Policy engine, API, database, and UI | Not started |
@@ -111,6 +113,15 @@ attestpay/
 ├── docs/
 │   ├── architecture.md
 │   └── engineering-standards.md
+├── src/
+│   ├── application/
+│   │   ├── ports/
+│   │   └── use-cases/
+│   ├── config/
+│   ├── infrastructure/
+│   │   └── circle/
+│   └── interfaces/
+│       └── cli/
 ├── scripts/
 │   └── circle/
 │       ├── create-treasury-wallet.ts
@@ -120,6 +131,8 @@ attestpay/
 ├── .gitattributes
 ├── .gitignore
 ├── package.json
+├── tests/
+│   └── unit/
 ├── tsconfig.json
 └── README.md
 ```
@@ -191,9 +204,11 @@ timeout without intentionally creating duplicate resources.
 | Command | Purpose |
 | --- | --- |
 | `npm run typecheck` | Run strict TypeScript validation without generating build files |
+| `npm test` | Run unit tests through Node's test runner and `tsx` |
 | `npm run circle:generate-secret` | Generate an entity secret and store it in `.env.local` without printing it |
 | `npm run circle:register-secret` | Register the entity secret with Circle and create recovery material |
 | `npm run circle:create-wallet` | Create or verify the AttestPay wallet set and `ARC-TESTNET` EOA |
+| `npm run circle:balances` | Validate the configured treasury and list Circle-indexed balances |
 
 ## Security Model
 

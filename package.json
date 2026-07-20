@@ -6,12 +6,15 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
     "circle:generate-secret": "tsx scripts/circle/generate-entity-secret.ts",
     "circle:register-secret": "node --env-file=.env.local --import=tsx scripts/circle/register-entity-secret.ts",
-    "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts"
+    "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts",
+    "circle:balances": "node --env-file=.env.local --import=tsx src/interfaces/cli/show-treasury-balances.ts"
   },
   "dependencies": {
-    "@circle-fin/developer-controlled-wallets": "^10.8.0"
+    "@circle-fin/developer-controlled-wallets": "^10.8.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
