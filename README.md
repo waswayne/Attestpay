@@ -7,8 +7,8 @@ verified vendors, work orders, and spending rules before USDC can move. Routine
 payments can execute automatically; duplicates, recipient changes, unusual
 amounts, and policy violations are blocked or escalated for human approval.
 
-The hackathon prototype targets the **Agentic Economy Track** and uses a Circle
-developer-controlled wallet on **Arc Public Testnet**.
+The initial implementation uses a Circle developer-controlled wallet on
+**Arc Public Testnet**.
 
 > [!IMPORTANT]
 > AttestPay is an early testnet prototype. It is not production-ready financial,
@@ -202,8 +202,8 @@ committed `.env.example` contains variable names only.
 3. **Controlled execution** — deploy the vault, add bound approvals, submit
    through Circle, and reconcile Arc events.
 4. **Product workflow** — build the authenticated operator and approver UI.
-5. **Submission hardening** — adversarial tests, clean setup validation,
-   documentation, and a three-minute demo.
+5. **Product hardening** — adversarial tests, clean setup validation,
+   documentation, and a repeatable product demo.
 
 ## Planned Technology
 
