@@ -1,0 +1,11 @@
+# Local credentials and generated recovery material
+.env
+.env.*
+!.env.example
+recovery/
+
+# Installed dependencies and generated output
+node_modules/
+dist/
+coverage/
+*.log

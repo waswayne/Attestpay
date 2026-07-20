@@ -1,0 +1,14 @@
+{
+  "name": "attestpay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Policy-controlled USDC treasury agent on Arc.",
+  "type": "module",
+  "scripts": {
+    "circle:generate-secret": "node scripts/circle/generate-entity-secret.mjs",
+    "circle:register-secret": "node --env-file=.env.local scripts/circle/register-entity-secret.mjs"
+  },
+  "dependencies": {
+    "@circle-fin/developer-controlled-wallets": "^10.8.0"
+  }
+}
