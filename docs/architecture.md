@@ -151,6 +151,39 @@ Reconciliation verifies the ordered `BeforeMemo`, USDC `Transfer`, and `Memo`
 events, including the original EOA sender, USDC target, transfer calldata hash,
 memo ID, memo bytes, recipient, and amount.
 
+### The vault owns protected funds
+
+`AttestPayVault` is a non-upgradeable Solidity contract that holds the USDC
+budget governed by AttestPay policy. Keeping protected funds in the vault is a
+security boundary: an executor cannot bypass vault rules by calling USDC
+directly from its own wallet.
+
+Payment execution separates two capabilities:
+
+- An account with `AUTHORIZER_ROLE` signs an EIP-712 authorization containing
+  the payment ID, recipient, amount, invoice hash, policy hash, validity window,
+  and authorizer address.
+- An account with `EXECUTOR_ROLE` submits the signed authorization through the
+  Arc Memo contract. Arc preserves this EOA as `msg.sender` at the vault.
+
+The EIP-712 domain binds a signature to the Arc chain ID and one deployed vault.
+The vault consumes each payment ID once, requires an approved recipient,
+enforces per-payment and UTC-day aggregate limits, and transfers the exact
+signed USDC amount. OpenZeppelin implementations provide EIP-712 hashing,
+EOA/ERC-1271 signature checking, role management, safe ERC-20 calls, pausing,
+and reentrancy protection.
+
+The default administrator has a delayed two-step transfer process. It can
+manage roles, unpause execution, and recover funds only while the vault is
+paused. These are explicit trusted powers. The full invariants and residual
+risks are recorded in `docs/vault-security.md`.
+
+For the testnet prototype, the treasury EOA is both administrator and executor,
+and the executor and authorizer wallets are controlled through the same Circle
+entity credential. The onchain roles are separate, but production custody must
+place administration, authorization, and execution in independent security
+domains.
+
 ### Arc USDC has one canonical application balance
 
 Arc exposes one underlying USDC balance through a native gas interface and an
@@ -167,7 +200,7 @@ an infrastructure concern for gas estimation and transaction construction.
 - Arc's predeployed Memo contract attaches reconciliation metadata while
   preserving the original EOA as `msg.sender`.
 - Standard ERC-20 interfaces handle USDC interaction.
-- Established contract libraries will provide access control, signature, token,
+- Established contract libraries provide access control, signature, token,
   and reentrancy primitives rather than custom implementations.
 
 AttestPay implements its product-specific policy, authorization receipt, and
@@ -204,3 +237,10 @@ general-purpose contract security components.
    contracts, and migration-managed SQL for persistent state.
 7. Separate treasury observation from payment authority through distinct
    application ports.
+8. Put policy-protected USDC in a non-upgradeable vault rather than relying on
+   an EOA to voluntarily call policy code.
+9. Separate EIP-712 authorization from transaction execution and bind every
+   approval to one chain, vault, payment, recipient, amount, invoice, policy,
+   validity window, and signer.
+10. Use OpenZeppelin Contracts and Hardhat's native Solidity/fuzz test runner
+    instead of implementing cryptography or an EVM test harness.

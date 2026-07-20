@@ -56,6 +56,37 @@ export type PreparedArcMemoTransfer = Readonly<{
   memoData: Hex;
 }>;
 
+export type PreparedArcMemoCall = Readonly<{
+  contractCallData: Hex;
+  targetCallDataHash: Hash;
+  memoId: Hash;
+  memoData: Hex;
+}>;
+
+export function prepareArcMemoCall(input: {
+  targetAddress: Address;
+  targetCallData: Hex;
+  authorizationReference: string;
+}): PreparedArcMemoCall {
+  const targetCallDataHash = keccak256(input.targetCallData);
+  const memoId = keccak256(
+    stringToHex(`${ATTESTPAY_MEMO_FORMAT}:${input.authorizationReference}`),
+  );
+  const memoData = stringToHex(ATTESTPAY_MEMO_FORMAT);
+  const contractCallData = encodeFunctionData({
+    abi: ARC_MEMO_ABI,
+    functionName: "memo",
+    args: [input.targetAddress, input.targetCallData, memoId, memoData],
+  });
+
+  return Object.freeze({
+    contractCallData,
+    targetCallDataHash,
+    memoId,
+    memoData,
+  });
+}
+
 export function prepareArcMemoTransfer(input: {
   recipientAddress: Address;
   amount: string;
@@ -66,26 +97,16 @@ export function prepareArcMemoTransfer(input: {
     functionName: "transfer",
     args: [input.recipientAddress, parseUsdcAmount(input.amount)],
   });
-  const transferCallDataHash = keccak256(transferCallData);
-  const memoId = keccak256(
-    stringToHex(`${ATTESTPAY_MEMO_FORMAT}:${input.authorizationReference}`),
-  );
-  const memoData = stringToHex(ATTESTPAY_MEMO_FORMAT);
-  const contractCallData = encodeFunctionData({
-    abi: ARC_MEMO_ABI,
-    functionName: "memo",
-    args: [
-      ARC_TESTNET_USDC_ADDRESS,
-      transferCallData,
-      memoId,
-      memoData,
-    ],
+  const memo = prepareArcMemoCall({
+    targetAddress: ARC_TESTNET_USDC_ADDRESS,
+    targetCallData: transferCallData,
+    authorizationReference: input.authorizationReference,
   });
 
   return Object.freeze({
-    contractCallData,
-    transferCallDataHash,
-    memoId,
-    memoData,
+    contractCallData: memo.contractCallData,
+    transferCallDataHash: memo.targetCallDataHash,
+    memoId: memo.memoId,
+    memoData: memo.memoData,
   });
 }

@@ -98,7 +98,7 @@ onchain.
 | Controlled recipient and idempotent USDC transfer path | Live verified |
 | Independent Arc receipt and USDC event reconciliation | Complete |
 | Arc memo encoding, Circle submission, and event reconciliation | Live verified |
-| `AttestPayVault` contract | Not started |
+| `AttestPayVault` contract and adversarial tests | Implemented; Arc deployment next |
 | Policy engine, API, database, and UI | Not started |
 
 The immediate goal is to prove the critical external path before building the
@@ -207,6 +207,24 @@ Create or verify a separate Circle-controlled Arc Testnet recipient:
 npm run circle:create-recipient
 ```
 
+Create or verify a separate Circle-controlled authorization signer. This wallet
+signs EIP-712 payment instructions but cannot execute them:
+
+```bash
+npm run circle:create-authorizer
+```
+
+Compile, deploy, poll, and independently verify `AttestPayVault` on Arc Testnet:
+
+```bash
+npm run contract:deploy-vault
+```
+
+The deployment command uses Circle Contracts with the existing treasury EOA,
+persists its idempotency key before submission, and verifies the deployed
+bytecode, canonical Arc USDC address, role assignments, administrator, and
+spending limits through an independent Arc RPC read.
+
 Submit a deliberately small transfer by assigning it a stable operation ID:
 
 ```bash
@@ -240,13 +258,18 @@ events `BeforeMemo -> Transfer -> Memo` to match the expected payment.
 | --- | --- |
 | `npm run typecheck` | Run strict TypeScript validation without generating build files |
 | `npm test` | Run unit tests through Node's test runner and `tsx` |
+| `npm run test:contract` | Run Solidity authorization, replay, limit, pause, and fuzz tests |
+| `npm run test:all` | Run TypeScript and Solidity test suites |
+| `npm run contract:compile` | Compile the Solidity contracts with Hardhat |
 | `npm run circle:generate-secret` | Generate an entity secret and store it in `.env.local` without printing it |
 | `npm run circle:register-secret` | Register the entity secret with Circle and create recovery material |
 | `npm run circle:create-wallet` | Create or verify the AttestPay wallet set and `ARC-TESTNET` EOA |
 | `npm run circle:create-recipient` | Create or verify the controlled Arc Testnet recipient |
+| `npm run circle:create-authorizer` | Create or verify the separate EIP-712 authorization signer |
 | `npm run circle:balances` | Validate the configured treasury and list Circle-indexed balances |
 | `npm run circle:send-test -- <operation-id> <amount>` | Submit or resume one idempotent controlled USDC transfer |
 | `npm run circle:send-memo-test -- <operation-id> <amount> <authorization-reference>` | Submit, resume, and reconcile one memo-linked USDC transfer |
+| `npm run contract:deploy-vault` | Compile, idempotently deploy, and independently verify `AttestPayVault` |
 
 ## Security Model
 
@@ -254,6 +277,9 @@ events `BeforeMemo -> Transfer -> Memo` to match the expected payment.
 - AI output cannot directly authorize or execute a payment.
 - Vendor wallet addresses must be independently verified.
 - Duplicate invoices and reused authorization receipts must be rejected.
+- The vault, not the executor EOA, holds the budget protected by onchain policy.
+- A separate authorizer signs the exact EIP-712 payment payload; the executor
+  can submit that payload but cannot modify it.
 - Human approval must bind to the exact recipient, amount, asset, invoice, and
   policy version.
 - The onchain vault independently enforces recipient and spending constraints.
@@ -291,7 +317,7 @@ committed `.env.example` contains variable names only.
 | Backend and deterministic policy | Strict TypeScript with Zod validation |
 | Circle wallet integration | TypeScript and the official Circle developer-controlled wallet SDK |
 | Arc integration | TypeScript and `viem` |
-| Onchain vault | Solidity with contract, fuzz, and invariant tests |
+| Onchain vault | Solidity, OpenZeppelin Contracts, and Hardhat 3 |
 | Persistence | PostgreSQL with migration-managed SQL and an ORM |
 | Browser verification | Playwright |
 
@@ -309,6 +335,9 @@ milestone begins.
 - [Arc transaction memos](https://docs.arc.io/arc/concepts/transaction-memos)
 - [Circle developer-controlled wallets](https://developers.circle.com/wallets/dev-controlled)
 - [Circle Wallets supported blockchains](https://developers.circle.com/wallets/supported-blockchains)
+- [Circle custom contract deployment](https://developers.circle.com/contracts/scp-deploy-smart-contract)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts/5.x/)
+- [Hardhat 3 Solidity testing](https://hardhat.org/docs/guides/testing/using-solidity)
 
 ## License
 

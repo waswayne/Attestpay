@@ -7,22 +7,36 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/**/*.test.ts",
+    "test:contract": "hardhat test solidity",
+    "test:all": "npm run test && npm run test:contract",
+    "contract:compile": "hardhat compile",
     "circle:generate-secret": "tsx scripts/circle/generate-entity-secret.ts",
     "circle:register-secret": "node --env-file=.env.local --import=tsx scripts/circle/register-entity-secret.ts",
     "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts",
     "circle:create-recipient": "node --env-file=.env.local --import=tsx scripts/circle/create-test-recipient.ts",
+    "circle:create-authorizer": "node --env-file=.env.local --import=tsx scripts/circle/create-vault-authorizer.ts",
     "circle:balances": "node --env-file=.env.local --import=tsx src/interfaces/cli/show-treasury-balances.ts",
     "circle:send-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-transfer.ts",
-    "circle:send-memo-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-memo-transfer.ts"
+    "circle:send-memo-test": "node --env-file=.env.local --import=tsx src/interfaces/cli/send-test-memo-transfer.ts",
+    "contract:deploy-vault": "npm run contract:compile && node --env-file=.env.local --import=tsx scripts/contracts/deploy-attestpay-vault.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.0",
+    "@circle-fin/smart-contract-platform": "^10.8.0",
+    "@openzeppelin/contracts": "^5.6.1",
     "viem": "^2.55.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.7",
+    "hardhat": "^3.11.0",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "hardhat": {
+      "adm-zip": "0.6.0"
+    }
   }
 }
