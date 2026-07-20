@@ -5,11 +5,17 @@
   "description": "Policy-controlled USDC treasury agent on Arc.",
   "type": "module",
   "scripts": {
-    "circle:generate-secret": "node scripts/circle/generate-entity-secret.mjs",
-    "circle:register-secret": "node --env-file=.env.local scripts/circle/register-entity-secret.mjs",
-    "circle:create-wallet": "node --env-file=.env.local scripts/circle/create-treasury-wallet.mjs"
+    "typecheck": "tsc --noEmit",
+    "circle:generate-secret": "tsx scripts/circle/generate-entity-secret.ts",
+    "circle:register-secret": "node --env-file=.env.local --import=tsx scripts/circle/register-entity-secret.ts",
+    "circle:create-wallet": "node --env-file=.env.local --import=tsx scripts/circle/create-treasury-wallet.ts"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
   }
 }

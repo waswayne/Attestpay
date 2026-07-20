@@ -52,6 +52,11 @@ but it cannot invent its own spending authority.
 
 ## Planned Architecture
 
+The detailed dependency rules and module boundaries are recorded in
+[docs/architecture.md](docs/architecture.md). Repository-wide implementation
+requirements are defined in
+[docs/engineering-standards.md](docs/engineering-standards.md).
+
 ```mermaid
 flowchart LR
     A["Invoice upload"] --> B["Restricted extraction adapter"]
@@ -83,9 +88,10 @@ onchain.
 | Capability | Status |
 | --- | --- |
 | Node.js project and Circle SDK | Complete |
+| Strict TypeScript configuration and type-check command | Complete |
 | Testnet API key and entity-secret registration workflow | Complete |
 | Recovery-file generation and local safety checks | Complete |
-| Circle wallet set and `ARC-TESTNET` EOA creation command | Ready to run |
+| Circle wallet set and `ARC-TESTNET` EOA | Complete |
 | Testnet funding and basic USDC transfer | Not started |
 | Arc memo compatibility spike | Not started |
 | `AttestPayVault` contract | Not started |
@@ -102,13 +108,19 @@ Circle wallet -> Arc EOA -> transaction memo -> AttestPayVault -> test USDC reci
 
 ```text
 attestpay/
+├── docs/
+│   ├── architecture.md
+│   └── engineering-standards.md
 ├── scripts/
 │   └── circle/
-│       ├── generate-entity-secret.mjs
-│       └── register-entity-secret.mjs
+│       ├── create-treasury-wallet.ts
+│       ├── generate-entity-secret.ts
+│       └── register-entity-secret.ts
 ├── .env.example
+├── .gitattributes
 ├── .gitignore
 ├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -121,6 +133,7 @@ web application, and tests are implemented.
 
 - Node.js 22.6 or newer
 - npm
+- TypeScript tooling is installed locally through the project
 - A Circle Testnet server-side API key
 - An encrypted location for the entity secret and recovery file
 
@@ -177,6 +190,7 @@ timeout without intentionally creating duplicate resources.
 
 | Command | Purpose |
 | --- | --- |
+| `npm run typecheck` | Run strict TypeScript validation without generating build files |
 | `npm run circle:generate-secret` | Generate an entity secret and store it in `.env.local` without printing it |
 | `npm run circle:register-secret` | Register the entity secret with Circle and create recovery material |
 | `npm run circle:create-wallet` | Create or verify the AttestPay wallet set and `ARC-TESTNET` EOA |
@@ -218,13 +232,19 @@ committed `.env.example` contains variable names only.
 
 ## Planned Technology
 
-- Next.js, TypeScript, React, and Tailwind CSS
-- PostgreSQL with migration-managed schema
-- Zod for strict input validation
-- Circle developer-controlled wallet SDK
-- `viem` for Arc contract and event interaction
-- Solidity with contract tests
-- Playwright for end-to-end browser verification
+| Area | Language and technology |
+| --- | --- |
+| Web interface | TypeScript, Next.js, React, and Tailwind CSS |
+| Backend and deterministic policy | Strict TypeScript with Zod validation |
+| Circle wallet integration | TypeScript and the official Circle developer-controlled wallet SDK |
+| Arc integration | TypeScript and `viem` |
+| Onchain vault | Solidity with contract, fuzz, and invariant tests |
+| Persistence | PostgreSQL with migration-managed SQL and an ORM |
+| Browser verification | Playwright |
+
+Circle and Arc are platforms rather than programming languages. TypeScript owns
+the offchain system, Solidity owns the EVM contract, and SQL owns persistent
+data definitions.
 
 Technology choices beyond the installed Circle SDK remain proposed until their
 implementation milestone begins.

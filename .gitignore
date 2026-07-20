@@ -9,3 +9,10 @@ node_modules/
 dist/
 coverage/
 *.log
+
+# Private workspace instructions and planning documents
+AGENTS.md
+ATTESTPAY_PRD.md
+BUILD_PLAN.md
+docs/private/
+*.private.md

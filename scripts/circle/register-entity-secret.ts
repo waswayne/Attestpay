@@ -12,7 +12,7 @@ if (!apiKey.startsWith("TEST_API_KEY:")) {
   throw new Error("Refusing to continue: this command requires a Circle Testnet API key.");
 }
 
-if (!/^[a-fA-F0-9]{64}$/.test(entitySecret ?? "")) {
+if (!entitySecret || !/^[a-fA-F0-9]{64}$/.test(entitySecret)) {
   throw new Error("CIRCLE_ENTITY_SECRET must be a 64-character hexadecimal value.");
 }
 

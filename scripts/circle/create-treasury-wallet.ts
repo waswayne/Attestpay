@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 
+type TreasuryWallet = {
+  id: string;
+  address: string;
+  blockchain: string;
+  accountType: string;
+  walletSetId: string;
+};
+
 const environmentFile = new URL("../../.env.local", import.meta.url);
 const apiKey = process.env.CIRCLE_API_KEY?.trim();
 const entitySecret = process.env.CIRCLE_ENTITY_SECRET?.trim();
@@ -10,13 +18,13 @@ if (!apiKey?.startsWith("TEST_API_KEY:")) {
   throw new Error("CIRCLE_API_KEY must be a Circle Testnet API key.");
 }
 
-if (!/^[a-fA-F0-9]{64}$/.test(entitySecret ?? "")) {
+if (!entitySecret || !/^[a-fA-F0-9]{64}$/.test(entitySecret)) {
   throw new Error("CIRCLE_ENTITY_SECRET must be a 64-character hexadecimal value.");
 }
 
 let environmentContents = await readFile(environmentFile, "utf8");
 
-async function saveEnvironmentValue(name, value) {
+async function saveEnvironmentValue(name: string, value: string): Promise<void> {
   if (!value || /[\r\n]/.test(value)) {
     throw new Error(`Refusing to save an invalid ${name} value.`);
   }
@@ -37,7 +45,7 @@ async function saveEnvironmentValue(name, value) {
   });
 }
 
-async function getOrCreateIdempotencyKey(name) {
+async function getOrCreateIdempotencyKey(name: string): Promise<string> {
   const existingKey = process.env[name]?.trim();
   if (existingKey) {
     return existingKey;
@@ -79,8 +87,12 @@ if (!walletSetId) {
   console.log(`Reusing verified wallet set: ${walletSetId}`);
 }
 
+if (!walletSetId) {
+  throw new Error("The Circle wallet-set ID is unavailable.");
+}
+
 let walletId = process.env.CIRCLE_WALLET_ID?.trim();
-let wallet;
+let wallet: TreasuryWallet | undefined;
 
 if (!walletId) {
   const idempotencyKey = await getOrCreateIdempotencyKey(
@@ -99,7 +111,12 @@ if (!walletId) {
     throw new Error(`Expected one Circle wallet, received ${wallets.length}.`);
   }
 
-  wallet = wallets[0];
+  const createdWallet = wallets[0];
+  if (!createdWallet) {
+    throw new Error("Circle did not return the created wallet.");
+  }
+
+  wallet = createdWallet;
   walletId = wallet.id;
   await saveEnvironmentValue("CIRCLE_WALLET_ID", walletId);
 } else {

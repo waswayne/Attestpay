@@ -1,13 +1,18 @@
+import { randomBytes } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
-import { generateEntitySecret } from "@circle-fin/developer-controlled-wallets";
 
 const environmentFile = new URL("../../.env.local", import.meta.url);
 
 let existingEnvironment = "";
 try {
   existingEnvironment = await readFile(environmentFile, "utf8");
-} catch (error) {
-  if (error.code !== "ENOENT") {
+} catch (error: unknown) {
+  const errorCode =
+    typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : undefined;
+
+  if (errorCode !== "ENOENT") {
     throw error;
   }
 }
@@ -18,24 +23,9 @@ if (/^CIRCLE_ENTITY_SECRET=\S+/m.test(existingEnvironment)) {
   );
   process.exitCode = 1;
 } else {
-  const capturedOutput = [];
-  const originalLog = console.log;
-
-  try {
-    console.log = (...values) => capturedOutput.push(values.join(" "));
-    generateEntitySecret();
-  } finally {
-    console.log = originalLog;
-  }
-
-  const generatedOutput = capturedOutput.join("\n");
-  const match = generatedOutput.match(/ENTITY SECRET:\s*([a-fA-F0-9]{64})/);
-
-  if (!match) {
-    throw new Error("Circle SDK did not produce an entity secret in the expected format.");
-  }
-
-  const entitySecret = match[1];
+  // Circle defines an entity secret as a cryptographically random 32-byte key.
+  // Generate it directly because the SDK helper prints the value to stdout.
+  const entitySecret = randomBytes(32).toString("hex");
   let nextEnvironment = existingEnvironment;
 
   if (/^CIRCLE_ENTITY_SECRET=.*$/m.test(nextEnvironment)) {
@@ -55,6 +45,6 @@ if (/^CIRCLE_ENTITY_SECRET=\S+/m.test(existingEnvironment)) {
     mode: 0o600,
   });
 
-  originalLog("Entity secret generated and saved privately in .env.local.");
-  originalLog("The secret was intentionally not printed to the terminal.");
+  console.log("Entity secret generated and saved privately in .env.local.");
+  console.log("The secret was intentionally not printed to the terminal.");
 }
