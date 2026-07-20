@@ -16,6 +16,7 @@ import {
   getVaultPaymentTypedData,
   serializeVaultPaymentTypedData,
 } from "../arc/attestpay-vault.js";
+import { sanitizedCircleApiCause } from "./circle-api-error.js";
 
 type DeveloperWalletsClient = ReturnType<
   typeof initiateDeveloperControlledWalletsClient
@@ -91,7 +92,9 @@ export class CircleVaultAuthorizationSignerAdapter
       return signature;
     } catch (error: unknown) {
       if (error instanceof CircleVaultAuthorizationSigningError) throw error;
-      throw new CircleVaultAuthorizationSigningError(requestId, { cause: error });
+      throw new CircleVaultAuthorizationSigningError(requestId, {
+        cause: sanitizedCircleApiCause(error),
+      });
     }
   }
 }

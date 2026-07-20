@@ -22,6 +22,13 @@ export type SubmitMemoUsdcTransfer = SubmitUsdcTransfer &
     authorizationReference: string;
   }>;
 
+export type SubmitArcContractCall = Readonly<{
+  idempotencyKey: string;
+  contractAddress: `0x${string}`;
+  callData: `0x${string}`;
+  reference: string;
+}>;
+
 export type TreasuryPaymentSubmission = Readonly<{
   transactionId: string;
   state: TreasuryTransactionState;
@@ -45,6 +52,10 @@ export interface TreasuryPaymentPort {
 
   submitMemoUsdcTransfer(
     transfer: SubmitMemoUsdcTransfer,
+  ): Promise<TreasuryPaymentSubmission>;
+
+  submitArcContractCall(
+    call: SubmitArcContractCall,
   ): Promise<TreasuryPaymentSubmission>;
 
   waitForTransactionHash(

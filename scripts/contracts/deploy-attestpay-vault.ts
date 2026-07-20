@@ -22,6 +22,7 @@ import {
   ARC_TESTNET_RPC_URLS,
   ARC_TESTNET_USDC_ADDRESS,
 } from "../../src/infrastructure/arc/arc-testnet.constants.js";
+import { circleApiErrorDetail } from "../../src/infrastructure/circle/circle-api-error.js";
 import { saveLocalEnvironmentValue } from "../circle/local-environment-file.js";
 
 type ContractArtifact = Readonly<{
@@ -91,38 +92,8 @@ const client = initiateSmartContractPlatformClient({
 type DeployContractInput = Parameters<typeof client.deployContract>[0];
 
 function circleDeploymentError(error: unknown, requestId: string): Error {
-  const sdkError = error as {
-    code?: unknown;
-    message?: unknown;
-    status?: unknown;
-    error?: {
-      response?: {
-        data?: {
-          errors?: Array<{ location?: unknown; message?: unknown }>;
-        };
-      };
-    };
-  };
-  const fieldErrors = sdkError.error?.response?.data?.errors
-    ?.map((item) => {
-      if (typeof item.message !== "string") return undefined;
-      const valueSuffix = item.message.indexOf(" (was ");
-      const message = valueSuffix === -1
-        ? item.message
-        : item.message.slice(0, valueSuffix);
-      return typeof item.location === "string"
-        ? `${item.location}: ${message}`
-        : message;
-    })
-    .filter((message): message is string => Boolean(message));
-  const detail = fieldErrors?.length
-    ? fieldErrors.join("; ")
-    : typeof sdkError.message === "string"
-      ? sdkError.message
-      : "unknown Circle API error";
-
   return new Error(
-    `Circle vault deployment request failed. Request ID: ${requestId}. ${detail}`,
+    `Circle vault deployment request failed. Request ID: ${requestId}. ${circleApiErrorDetail(error)}`,
   );
 }
 

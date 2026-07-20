@@ -87,4 +87,6 @@ authorization, payload modification, replay, recipient approval, validity
 windows, per-payment limits, cumulative daily limits, pausing, emergency
 recovery, and fuzzed valid payment amounts and IDs. TypeScript tests separately
 cover Circle EIP-712 request mapping, signature verification, Arc Memo wrapping,
-and cross-vault replay resistance.
+cross-vault replay resistance, current onchain readiness checks, exact contract
+call submission, recipient-approval evidence, and ordered vault-payment event
+reconciliation.

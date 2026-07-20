@@ -99,6 +99,7 @@ onchain.
 | Independent Arc receipt and USDC event reconciliation | Complete |
 | Arc memo encoding, Circle submission, and event reconciliation | Live verified |
 | `AttestPayVault` contract, adversarial tests, and Arc deployment | Live verified |
+| Vault recipient approval, funding, signed execution, and multi-event reconciliation | Implemented; live run next |
 | Policy engine, API, database, and UI | Not started |
 
 The immediate goal is to prove the critical external path before building the
@@ -228,6 +229,30 @@ persists its idempotency key before submission, and verifies the deployed
 bytecode, canonical Arc USDC address, role assignments, administrator, and
 spending limits through an independent Arc RPC read.
 
+Approve the controlled test recipient through the vault administrator:
+
+```bash
+npm run vault:approve-recipient -- approve-recipient-001
+```
+
+Fund the vault with a deliberately small amount of test USDC:
+
+```bash
+npm run vault:fund -- vault-funding-001 1
+```
+
+Create, sign, execute, and reconcile one vault-controlled test payment:
+
+```bash
+npm run vault:send-test -- vault-payment-001 0.01 invoice-001 policy-v1
+```
+
+The payment command persists one immutable authorization before submission.
+The operation ID controls retries; the invoice and policy references are hashed
+before they reach Arc. Settlement is accepted only when the receipt contains
+the ordered `BeforeMemo -> Transfer -> PaymentExecuted -> Memo` evidence with
+the exact expected vault, executor, authorizer, recipient, amount, and hashes.
+
 Submit a deliberately small transfer by assigning it a stable operation ID:
 
 ```bash
@@ -272,6 +297,10 @@ events `BeforeMemo -> Transfer -> Memo` to match the expected payment.
 | `npm run circle:balances` | Validate the configured treasury and list Circle-indexed balances |
 | `npm run circle:send-test -- <operation-id> <amount>` | Submit or resume one idempotent controlled USDC transfer |
 | `npm run circle:send-memo-test -- <operation-id> <amount> <authorization-reference>` | Submit, resume, and reconcile one memo-linked USDC transfer |
+| `npm run vault:approve-recipient -- <operation-id>` | Approve and independently verify the controlled recipient through the vault |
+| `npm run vault:status` | Read the live vault balance, pause state, recipient approval, limits, and daily spend from Arc |
+| `npm run vault:fund -- <operation-id> <amount>` | Fund the vault and verify the exact canonical USDC transfer |
+| `npm run vault:send-test -- <operation-id> <amount> <invoice-reference> <policy-reference>` | Sign, submit, and reconcile one policy-bound vault payment |
 | `npm run contract:deploy-vault` | Compile, idempotently deploy, and independently verify `AttestPayVault` |
 
 ## Security Model

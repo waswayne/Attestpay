@@ -184,6 +184,18 @@ entity credential. The onchain roles are separate, but production custody must
 place administration, authorization, and execution in independent security
 domains.
 
+Every live vault operation is persisted under the ignored `local-state/`
+directory before its first mutating Circle request. A retry must reproduce the
+same vault, recipient, amount, invoice reference, policy reference, EIP-712
+window, and idempotency key. Once submitted, the operation resumes the original
+Circle transaction instead of creating another payment.
+
+Vault payment reconciliation requires one successful Arc receipt containing
+the exact ordered evidence `BeforeMemo -> Transfer -> PaymentExecuted -> Memo`.
+The USDC transfer must originate from the vault, the vault event must bind the
+executor and authorizer, and the memo must bind the hash of the executed vault
+calldata.
+
 ### Arc USDC has one canonical application balance
 
 Arc exposes one underlying USDC balance through a native gas interface and an

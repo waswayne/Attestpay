@@ -15,15 +15,54 @@ export const ATTESTPAY_VAULT_EIP712_VERSION = "1";
 
 export const ATTESTPAY_VAULT_ABI = parseAbi([
   "function executePayment((bytes32 paymentId,address recipient,uint256 amount,bytes32 invoiceHash,bytes32 policyHash,uint48 validAfter,uint48 deadline,address authorizer) authorization, bytes signature)",
+  "function setRecipientApproval(address recipient,bool approved)",
   "function hashAuthorization((bytes32 paymentId,address recipient,uint256 amount,bytes32 invoiceHash,bytes32 policyHash,uint48 validAfter,uint48 deadline,address authorizer) authorization) view returns (bytes32)",
   "function usdc() view returns (address)",
   "function maxPaymentAmount() view returns (uint256)",
   "function dailyLimit() view returns (uint256)",
+  "function paused() view returns (bool)",
+  "function spentByDay(uint256 unixDay) view returns (uint256)",
   "function defaultAdmin() view returns (address)",
   "function hasRole(bytes32 role,address account) view returns (bool)",
   "function approvedRecipients(address recipient) view returns (bool)",
+  "function usedPaymentIds(bytes32 paymentId) view returns (bool)",
+  "event RecipientApprovalChanged(address indexed recipient,bool approved,address indexed changedBy)",
   "event PaymentExecuted(bytes32 indexed paymentId,address indexed recipient,address indexed authorizer,uint256 amount,bytes32 invoiceHash,bytes32 policyHash,address executor,uint256 unixDay,uint256 spentToday)",
 ]);
+
+export type PreparedArcVaultCall = Readonly<{
+  contractCallData: Hex;
+  vaultCallData: Hex;
+  vaultCallDataHash: Hash;
+  memoId: Hash;
+  memoData: Hex;
+}>;
+
+export function prepareArcVaultRecipientApproval(input: {
+  vaultAddress: Address;
+  recipientAddress: Address;
+  approved: boolean;
+  authorizationReference: string;
+}): PreparedArcVaultCall {
+  const vaultCallData = encodeFunctionData({
+    abi: ATTESTPAY_VAULT_ABI,
+    functionName: "setRecipientApproval",
+    args: [input.recipientAddress, input.approved],
+  });
+  const memo = prepareArcMemoCall({
+    targetAddress: input.vaultAddress,
+    targetCallData: vaultCallData,
+    authorizationReference: input.authorizationReference,
+  });
+
+  return Object.freeze({
+    contractCallData: memo.contractCallData,
+    vaultCallData,
+    vaultCallDataHash: memo.targetCallDataHash,
+    memoId: memo.memoId,
+    memoData: memo.memoData,
+  });
+}
 
 export const VAULT_PAYMENT_AUTHORIZATION_TYPES = {
   PaymentAuthorization: [
@@ -62,13 +101,7 @@ export function serializeVaultPaymentTypedData(
   return serializeTypedData(getVaultPaymentTypedData(vaultAddress, authorization));
 }
 
-export type PreparedArcVaultPayment = Readonly<{
-  contractCallData: Hex;
-  vaultCallData: Hex;
-  vaultCallDataHash: Hash;
-  memoId: Hash;
-  memoData: Hex;
-}>;
+export type PreparedArcVaultPayment = PreparedArcVaultCall;
 
 export function prepareArcVaultPayment(input: {
   vaultAddress: Address;

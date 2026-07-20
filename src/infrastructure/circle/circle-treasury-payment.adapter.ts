@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { initiateDeveloperControlledWalletsClient } from "@circle-fin/developer-controlled-wallets";
 import { z } from "zod";
 import type {
+  SubmitArcContractCall,
   SubmitUsdcTransfer,
   SubmitMemoUsdcTransfer,
   TreasuryPaymentPort,
@@ -15,6 +16,7 @@ import {
   ARC_MEMO_ADDRESS,
   prepareArcMemoTransfer,
 } from "../arc/arc-memo.js";
+import { sanitizedCircleApiCause } from "./circle-api-error.js";
 
 type DeveloperWalletsClient = ReturnType<
   typeof initiateDeveloperControlledWalletsClient
@@ -106,7 +108,7 @@ export class CircleTreasuryPaymentAdapter implements TreasuryPaymentPort {
       });
     } catch (error: unknown) {
       throw new CircleTreasuryPaymentError("transfer submission", requestId, {
-        cause: error,
+        cause: sanitizedCircleApiCause(error),
       });
     }
   }
@@ -149,7 +151,45 @@ export class CircleTreasuryPaymentAdapter implements TreasuryPaymentPort {
       throw new CircleTreasuryPaymentError(
         "memo-transfer submission",
         requestId,
-        { cause: error },
+        { cause: sanitizedCircleApiCause(error) },
+      );
+    }
+  }
+
+  async submitArcContractCall(
+    call: SubmitArcContractCall,
+  ): Promise<TreasuryPaymentSubmission> {
+    const requestId = randomUUID();
+
+    try {
+      const response = await this.client.createContractExecutionTransaction({
+        walletAddress: this.config.walletAddress,
+        blockchain: "ARC-TESTNET",
+        contractAddress: call.contractAddress,
+        callData: call.callData,
+        refId: call.reference,
+        idempotencyKey: call.idempotencyKey,
+        fee: {
+          type: "level",
+          config: { feeLevel: "MEDIUM" },
+        },
+        xRequestId: requestId,
+      });
+
+      const parsed = submissionSchema.safeParse(response.data);
+      if (!parsed.success) {
+        throw new Error("Circle returned an invalid contract-call response.");
+      }
+
+      return Object.freeze({
+        transactionId: parsed.data.id,
+        state: parsed.data.state,
+      });
+    } catch (error: unknown) {
+      throw new CircleTreasuryPaymentError(
+        "contract-call submission",
+        requestId,
+        { cause: sanitizedCircleApiCause(error) },
       );
     }
   }
@@ -182,7 +222,7 @@ export class CircleTreasuryPaymentAdapter implements TreasuryPaymentPort {
       });
     } catch (error: unknown) {
       throw new CircleTreasuryPaymentError("transaction polling", requestId, {
-        cause: error,
+        cause: sanitizedCircleApiCause(error),
       });
     }
   }

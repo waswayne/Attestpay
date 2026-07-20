@@ -56,6 +56,9 @@ function createPayments(onSubmit: (input: SubmitUsdcTransfer) => void): Treasury
     async submitMemoUsdcTransfer() {
       throw new Error("not used by this use case");
     },
+    async submitArcContractCall() {
+      throw new Error("not used by this use case");
+    },
     async waitForTransactionHash() {
       throw new Error("not used by this use case");
     },

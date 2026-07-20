@@ -13,6 +13,7 @@ import type { VaultPaymentAuthorization } from "../../../src/domain/payments/vau
 import {
   ATTESTPAY_VAULT_ABI,
   getVaultPaymentTypedData,
+  prepareArcVaultRecipientApproval,
   prepareArcVaultPayment,
 } from "../../../src/infrastructure/arc/attestpay-vault.js";
 import {
@@ -109,6 +110,29 @@ test("encodes the signed vault call inside the Arc Memo contract", async () => {
   assert.equal(inner.args[0].amount, payment.amount);
   assert.equal(inner.args[1], signature);
   assert.match(ARC_MEMO_ADDRESS, /^0x[0-9a-fA-F]{40}$/);
+});
+
+test("encodes recipient approval inside an auditable Arc Memo call", () => {
+  const prepared = prepareArcVaultRecipientApproval({
+    vaultAddress,
+    recipientAddress: recipient,
+    approved: true,
+    authorizationReference: "recipient-approval-001",
+  });
+  const outer = decodeFunctionData({
+    abi: ARC_MEMO_ABI,
+    data: prepared.contractCallData,
+  });
+  const inner = decodeFunctionData({
+    abi: ATTESTPAY_VAULT_ABI,
+    data: prepared.vaultCallData,
+  });
+
+  assert.equal(outer.functionName, "memo");
+  assert.equal(outer.args[0], vaultAddress);
+  assert.equal(inner.functionName, "setRecipientApproval");
+  assert.equal(inner.args[0], recipient);
+  assert.equal(inner.args[1], true);
 });
 
 test("a signature cannot be replayed against another vault", async () => {

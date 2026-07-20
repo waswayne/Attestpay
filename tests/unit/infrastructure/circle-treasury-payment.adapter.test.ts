@@ -123,3 +123,39 @@ test("submits an Arc memo as a Circle contract execution", async () => {
   assert.equal(typeof request?.callData, "string");
   assert.equal(request?.abiFunctionSignature, undefined);
 });
+
+test("submits an exact pre-encoded Arc contract call", async () => {
+  let request: Record<string, unknown> | undefined;
+  const client = {
+    async createContractExecutionTransaction(input: Record<string, unknown>) {
+      request = input;
+      return {
+        data: {
+          id: "66666666-6666-4666-8666-666666666666",
+          state: "INITIATED",
+        },
+      };
+    },
+    async createTransaction() {
+      throw new Error("not used");
+    },
+    async getTransaction() {
+      throw new Error("not used");
+    },
+  } as unknown as CircleTreasuryPaymentClient;
+  const adapter = new CircleTreasuryPaymentAdapter(config, client);
+  const callData = `0x${"ab".repeat(32)}` as const;
+  const contractAddress = "0x4444444444444444444444444444444444444444";
+
+  await adapter.submitArcContractCall({
+    idempotencyKey: "77777777-7777-4777-8777-777777777777",
+    contractAddress,
+    callData,
+    reference: "attestpay:vault:test",
+  });
+
+  assert.equal(request?.walletAddress, config.walletAddress);
+  assert.equal(request?.blockchain, "ARC-TESTNET");
+  assert.equal(request?.contractAddress, contractAddress);
+  assert.equal(request?.callData, callData);
+});
