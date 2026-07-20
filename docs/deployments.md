@@ -27,4 +27,19 @@ The deployment script independently read the runtime bytecode, asset address,
 administrator, role assignments, and limits from Arc before recording the
 deployment as verified.
 
+### Verified vault lifecycle
+
+On 2026-07-20, the deployed vault completed the controlled lifecycle below:
+
+| Operation | Verified Arc evidence |
+| --- | --- |
+| Approve controlled recipient | [`0x24231e87c2917086c119eccb31b8c3bcebf8a607e819743df9793a40c0bf1265`](https://testnet.arcscan.app/tx/0x24231e87c2917086c119eccb31b8c3bcebf8a607e819743df9793a40c0bf1265), block `52811877` |
+| Fund vault with 1 USDC | [`0xb27949439b36dd20bbbfd0d63334bd24f78c43f8df1756ebf80234d06adffc6c`](https://testnet.arcscan.app/tx/0xb27949439b36dd20bbbfd0d63334bd24f78c43f8df1756ebf80234d06adffc6c), block `52812514` |
+| Execute policy-bound 0.01 USDC payment | [`0x0dbd814e6b6fb9502565b46e37f5e780d17f7f970f30f2f6bba4fa8fafb9c24a`](https://testnet.arcscan.app/tx/0x0dbd814e6b6fb9502565b46e37f5e780d17f7f970f30f2f6bba4fa8fafb9c24a), block `52813902` |
+
+The payment receipt contained the ordered USDC `Transfer`, vault
+`PaymentExecuted`, and Arc `Memo` events at log indexes 11, 12, and 13. A
+subsequent independent read reported a 0.99 USDC vault balance, an approved
+recipient, an unpaused vault, and 0.01 USDC spent for the current UTC day.
+
 This is a testnet deployment. It is not approved for real assets.

@@ -28,7 +28,7 @@ const recipient = "0x2222222222222222222222222222222222222222" as Address;
 
 function createReceiptClient() {
   return {
-    async getTransactionReceipt() {
+    async waitForTransactionReceipt() {
       return {
         status: "success",
         transactionHash,
@@ -87,7 +87,7 @@ test("verifies the ordered Memo and USDC events as one settlement", async () => 
   });
   const memoIndex = 7n;
   const client = {
-    async getTransactionReceipt() {
+    async waitForTransactionReceipt() {
       return {
         status: "success",
         transactionHash,
@@ -166,7 +166,7 @@ test("verifies an ordered memo-wrapped vault recipient approval", async () => {
   });
   const memoIndex = 8n;
   const client = {
-    async getTransactionReceipt() {
+    async waitForTransactionReceipt() {
       return {
         status: "success",
         transactionHash,
@@ -248,7 +248,7 @@ test("verifies Transfer, PaymentExecuted, and Memo as one vault settlement", asy
   });
   const memoIndex = 9n;
   const client = {
-    async getTransactionReceipt() {
+    async waitForTransactionReceipt() {
       return {
         status: "success",
         transactionHash,

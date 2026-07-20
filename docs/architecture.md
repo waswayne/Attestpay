@@ -1,8 +1,9 @@
 # AttestPay Architecture
 
 This document records the intended system boundaries and dependency rules. It
-describes the direction of the codebase; the current implementation remains at
-the Circle and Arc integration-spike stage.
+describes the direction of the codebase. The Circle-to-Arc vault path is
+live-verified; the deterministic decision core is the next implementation
+stage.
 
 ## Architectural Style
 

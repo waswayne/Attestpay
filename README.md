@@ -83,7 +83,7 @@ onchain.
 
 ## Current Build Status
 
-**Milestone 0 — Technical spike: in progress**
+**Milestone 0 — Technical spike: complete**
 
 | Capability | Status |
 | --- | --- |
@@ -99,15 +99,17 @@ onchain.
 | Independent Arc receipt and USDC event reconciliation | Complete |
 | Arc memo encoding, Circle submission, and event reconciliation | Live verified |
 | `AttestPayVault` contract, adversarial tests, and Arc deployment | Live verified |
-| Vault recipient approval, funding, signed execution, and multi-event reconciliation | Implemented; live run next |
+| Vault recipient approval, funding, signed execution, and multi-event reconciliation | Live verified |
 | Policy engine, API, database, and UI | Not started |
 
-The immediate goal is to prove the critical external path before building the
-full interface:
+The critical external path is live-verified on Arc Public Testnet:
 
 ```text
 Circle wallet -> Arc EOA -> transaction memo -> AttestPayVault -> test USDC recipient
 ```
+
+The next milestone is the deterministic decision core: canonical vendors, work
+orders, invoices, policy versions, decisions, and authorization receipts.
 
 The verified Arc Testnet contract address, deployment transaction, authorities,
 and initial limits are recorded in [docs/deployments.md](docs/deployments.md).

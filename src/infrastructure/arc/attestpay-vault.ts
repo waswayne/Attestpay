@@ -1,7 +1,6 @@
 import {
   encodeFunctionData,
   parseAbi,
-  serializeTypedData,
   type Address,
   type Hash,
   type Hex,
@@ -77,6 +76,13 @@ export const VAULT_PAYMENT_AUTHORIZATION_TYPES = {
   ],
 } as const;
 
+export const EIP712_DOMAIN_TYPES = [
+  { name: "name", type: "string" },
+  { name: "version", type: "string" },
+  { name: "chainId", type: "uint256" },
+  { name: "verifyingContract", type: "address" },
+] as const;
+
 export function getVaultPaymentTypedData(
   vaultAddress: Address,
   authorization: VaultPaymentAuthorization,
@@ -98,7 +104,18 @@ export function serializeVaultPaymentTypedData(
   vaultAddress: Address,
   authorization: VaultPaymentAuthorization,
 ): string {
-  return serializeTypedData(getVaultPaymentTypedData(vaultAddress, authorization));
+  const typedData = getVaultPaymentTypedData(vaultAddress, authorization);
+
+  return JSON.stringify(
+    {
+      ...typedData,
+      types: {
+        EIP712Domain: EIP712_DOMAIN_TYPES,
+        ...typedData.types,
+      },
+    },
+    (_key, value) => (typeof value === "bigint" ? value.toString() : value),
+  );
 }
 
 export type PreparedArcVaultPayment = PreparedArcVaultCall;

@@ -27,7 +27,7 @@ import { ATTESTPAY_VAULT_ABI } from "./attestpay-vault.js";
 
 type ArcPublicClient = Pick<
   ReturnType<typeof createPublicClient>,
-  "getTransactionReceipt"
+  "waitForTransactionReceipt"
 >;
 
 export class ArcSettlementVerificationError extends Error {
@@ -287,8 +287,11 @@ export class ArcSettlementVerifierAdapter implements SettlementVerifierPort {
   }
 
   private async getSuccessfulReceipt(transactionHash: `0x${string}`) {
-    const receipt = await this.client.getTransactionReceipt({
+    const receipt = await this.client.waitForTransactionReceipt({
       hash: transactionHash,
+      confirmations: 1,
+      pollingInterval: 1_000,
+      timeout: 180_000,
     });
     if (
       receipt.status !== "success" ||
@@ -300,7 +303,7 @@ export class ArcSettlementVerifierAdapter implements SettlementVerifierPort {
   }
 
   private findMemoEvidence(
-    logs: Awaited<ReturnType<ArcPublicClient["getTransactionReceipt"]>>["logs"],
+    logs: Awaited<ReturnType<ArcPublicClient["waitForTransactionReceipt"]>>["logs"],
     expected: {
       senderAddress: `0x${string}`;
       targetAddress: `0x${string}`;

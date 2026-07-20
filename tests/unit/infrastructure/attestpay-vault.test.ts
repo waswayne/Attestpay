@@ -69,7 +69,19 @@ test("Circle signs the exact EIP-712 vault authorization", async () => {
   });
 
   assert.equal(result, signature);
-  assert.equal(JSON.parse(serializedData).primaryType, "PaymentAuthorization");
+  const circleTypedData = JSON.parse(serializedData);
+  assert.equal(circleTypedData.primaryType, "PaymentAuthorization");
+  assert.deepEqual(circleTypedData.domain, typedData.domain);
+  assert.deepEqual(
+    circleTypedData.types.EIP712Domain,
+    [
+      { name: "name", type: "string" },
+      { name: "version", type: "string" },
+      { name: "chainId", type: "uint256" },
+      { name: "verifyingContract", type: "address" },
+    ],
+  );
+  assert.equal(circleTypedData.message.amount, payment.amount.toString());
   assert.equal(
     await verifyTypedData({
       address: account.address,
