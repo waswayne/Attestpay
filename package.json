@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "circle:generate-secret": "node scripts/circle/generate-entity-secret.mjs",
-    "circle:register-secret": "node --env-file=.env.local scripts/circle/register-entity-secret.mjs"
+    "circle:register-secret": "node --env-file=.env.local scripts/circle/register-entity-secret.mjs",
+    "circle:create-wallet": "node --env-file=.env.local scripts/circle/create-treasury-wallet.mjs"
   },
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.8.0"

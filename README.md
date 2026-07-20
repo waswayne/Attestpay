@@ -85,8 +85,7 @@ onchain.
 | Node.js project and Circle SDK | Complete |
 | Testnet API key and entity-secret registration workflow | Complete |
 | Recovery-file generation and local safety checks | Complete |
-| Circle wallet set | Next |
-| Circle EOA on `ARC-TESTNET` | Not started |
+| Circle wallet set and `ARC-TESTNET` EOA creation command | Ready to run |
 | Testnet funding and basic USDC transfer | Not started |
 | Arc memo compatibility spike | Not started |
 | `AttestPayVault` contract | Not started |
@@ -163,12 +162,24 @@ Circle produced one recovery file.
 Do not repeat registration after it succeeds. Store the generated recovery
 file outside the repository.
 
+Create or verify the AttestPay Treasury wallet set and Arc Testnet EOA:
+
+```bash
+npm run circle:create-wallet
+```
+
+The command stores the returned wallet-set ID, wallet ID, and public wallet
+address in `.env.local`. It persists Circle idempotency keys before making each
+creation request, allowing the same operation to be retried safely after a
+timeout without intentionally creating duplicate resources.
+
 ## Available Commands
 
 | Command | Purpose |
 | --- | --- |
 | `npm run circle:generate-secret` | Generate an entity secret and store it in `.env.local` without printing it |
 | `npm run circle:register-secret` | Register the entity secret with Circle and create recovery material |
+| `npm run circle:create-wallet` | Create or verify the AttestPay wallet set and `ARC-TESTNET` EOA |
 
 ## Security Model
 
