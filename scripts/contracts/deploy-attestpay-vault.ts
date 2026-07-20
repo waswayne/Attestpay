@@ -88,21 +88,69 @@ const client = initiateSmartContractPlatformClient({
   entitySecret: treasury.entitySecret,
 });
 
+type DeployContractInput = Parameters<typeof client.deployContract>[0];
+
+function circleDeploymentError(error: unknown, requestId: string): Error {
+  const sdkError = error as {
+    code?: unknown;
+    message?: unknown;
+    status?: unknown;
+    error?: {
+      response?: {
+        data?: {
+          errors?: Array<{ location?: unknown; message?: unknown }>;
+        };
+      };
+    };
+  };
+  const fieldErrors = sdkError.error?.response?.data?.errors
+    ?.map((item) => {
+      if (typeof item.message !== "string") return undefined;
+      const valueSuffix = item.message.indexOf(" (was ");
+      const message = valueSuffix === -1
+        ? item.message
+        : item.message.slice(0, valueSuffix);
+      return typeof item.location === "string"
+        ? `${item.location}: ${message}`
+        : message;
+    })
+    .filter((message): message is string => Boolean(message));
+  const detail = fieldErrors?.length
+    ? fieldErrors.join("; ")
+    : typeof sdkError.message === "string"
+      ? sdkError.message
+      : "unknown Circle API error";
+
+  return new Error(
+    `Circle vault deployment request failed. Request ID: ${requestId}. ${detail}`,
+  );
+}
+
 let contractId = process.env.ATTESTPAY_VAULT_CONTRACT_ID?.trim();
 let deploymentTransactionId =
   process.env.ATTESTPAY_VAULT_DEPLOYMENT_TRANSACTION_ID?.trim();
 
 if (!contractId) {
-  const idempotencyKey =
-    process.env.ATTESTPAY_VAULT_DEPLOYMENT_IDEMPOTENCY_KEY?.trim() ?? randomUUID();
-  await saveLocalEnvironmentValue(
-    "ATTESTPAY_VAULT_DEPLOYMENT_IDEMPOTENCY_KEY",
-    idempotencyKey,
-  );
+  const requestVersion = "2";
+  const storedRequestVersion =
+    process.env.ATTESTPAY_VAULT_DEPLOYMENT_REQUEST_VERSION?.trim();
+  let idempotencyKey =
+    process.env.ATTESTPAY_VAULT_DEPLOYMENT_IDEMPOTENCY_KEY?.trim();
 
-  const response = await client.deployContract({
+  if (!idempotencyKey || storedRequestVersion !== requestVersion) {
+    idempotencyKey = randomUUID();
+    await saveLocalEnvironmentValue(
+      "ATTESTPAY_VAULT_DEPLOYMENT_IDEMPOTENCY_KEY",
+      idempotencyKey,
+    );
+    await saveLocalEnvironmentValue(
+      "ATTESTPAY_VAULT_DEPLOYMENT_REQUEST_VERSION",
+      requestVersion,
+    );
+  }
+
+  const deploymentRequest = {
     name: "AttestPayVault",
-    description: "Policy-enforced USDC treasury vault on Arc",
     blockchain: "ARC-TESTNET",
     walletId: treasury.walletId,
     abiJson: JSON.stringify(artifact.abi),
@@ -117,9 +165,24 @@ if (!contractId) {
       dailyLimit.toString(),
     ],
     idempotencyKey,
-    refId: "attestpay-vault-v1",
     fee: { type: "level", config: { feeLevel: "MEDIUM" } },
-  });
+  } satisfies DeployContractInput;
+  const requestId = randomUUID();
+  let response;
+  try {
+    await client.estimateContractDeploymentFee({
+      walletId: treasury.walletId,
+      abiJson: deploymentRequest.abiJson,
+      bytecode: deploymentRequest.bytecode,
+      constructorParameters: deploymentRequest.constructorParameters ?? [],
+    });
+    response = await client.deployContract({
+      ...deploymentRequest,
+      xRequestId: requestId,
+    });
+  } catch (error: unknown) {
+    throw circleDeploymentError(error, requestId);
+  }
 
   contractId = response.data?.contractId;
   deploymentTransactionId = response.data?.transactionId;

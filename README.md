@@ -98,7 +98,7 @@ onchain.
 | Controlled recipient and idempotent USDC transfer path | Live verified |
 | Independent Arc receipt and USDC event reconciliation | Complete |
 | Arc memo encoding, Circle submission, and event reconciliation | Live verified |
-| `AttestPayVault` contract and adversarial tests | Implemented; Arc deployment next |
+| `AttestPayVault` contract, adversarial tests, and Arc deployment | Live verified |
 | Policy engine, API, database, and UI | Not started |
 
 The immediate goal is to prove the critical external path before building the
@@ -107,6 +107,9 @@ full interface:
 ```text
 Circle wallet -> Arc EOA -> transaction memo -> AttestPayVault -> test USDC recipient
 ```
+
+The verified Arc Testnet contract address, deployment transaction, authorities,
+and initial limits are recorded in [docs/deployments.md](docs/deployments.md).
 
 ## Repository Structure
 
