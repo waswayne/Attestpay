@@ -2,8 +2,10 @@
 
 This document records the intended system boundaries and dependency rules. It
 describes the direction of the codebase. The Circle-to-Arc vault path is
-live-verified; the deterministic decision core is the next implementation
-stage.
+live-verified. Canonical business records, deterministic decision hashing,
+local receipt verification, SQLite workflow persistence, and product-to-vault
+orchestration are implemented and tested locally. Live execution of a
+product-created receipt remains incomplete.
 
 ## Architectural Style
 
@@ -71,6 +73,9 @@ attestpay/
 │   ├── domain/
 │   │   ├── invoices/
 │   │   ├── policies/
+│   │   ├── treasury/
+│   │   ├── vendors/
+│   │   ├── work-orders/
 │   │   ├── approvals/
 │   │   └── payments/
 │   ├── application/
@@ -109,15 +114,112 @@ calls the wallet adapter directly.
 
 ### Policy decisions are deterministic
 
-Given the same canonical vendor, work order, invoice, and policy version, the
-policy engine must return the same decision. Policy-table tests will cover each
-rule and precedence combination.
+The domain owns canonical vendor, work-order, invoice, and treasury-spend
+records. The verified vendor record is the only trusted wallet source; an
+invoice recipient remains an untrusted comparison value. Invalid verification
+states, negative or overcommitted work orders, non-USDC financial records, and
+invalid hashes fail closed before policy evaluation.
+
+Canonical serialization uses versioned fixed-position arrays rather than JSON
+object-property order. Bigint amounts are encoded as base-10 strings and hashed
+with Node's SHA-256 implementation. Invoice fingerprints cover normalized
+payment facts, canonical input hashes bind the complete decision evidence, and
+policy-definition hashes bind the version, currency, automatic-payment limit,
+and daily limit. Decision hashes bind that exact policy definition, the input
+hash, final decision, and ordered rule results.
+
+Given the same normalized records, caller-supplied evaluation instant, daily
+spend records, duplicate evidence, and policy definition, the engine returns
+the same hashes, per-rule evidence, and decision. The engine reads no clock and
+performs no database, network, AI, Circle, or Arc calls. Policy-table tests cover
+every implemented rule order and the precedence `BLOCK > REVIEW > PASS`.
+
+Shared boundary validation uses `viem` for EVM validation, zero-address
+rejection, and EIP-55 checksum normalization, then returns a branded canonical
+address. Domain modules accept only that canonical type and do not import a
+blockchain client, RPC capability, wallet, or network code.
+
+### Lifecycle transitions are explicit
+
+Invoice state advances only through `RECEIVED -> VALIDATED -> EVALUATED` and
+then archival, with a separate rejection path. Payment state begins from the
+deterministic policy decision: `AUTO_APPROVED`, `AWAITING_HUMAN_APPROVAL`, or
+`BLOCKED`. Human review can produce `HUMAN_APPROVED` or `BLOCKED`; only automatic
+or human-approved state can verify a receipt and become `AUTHORIZED`. Submission
+and independently verified evidence advance it to `SUBMITTED` and `SETTLED`.
+Invalid skips, duplicate terminal transitions, and settlement before submission
+throw before persistence or external calls.
+
+`SUBMITTED` is a durable reconciliation state, not a second execution attempt.
+The persisted transaction ID and hash, prepared call, vault authorization,
+receipt, receipt hash, and exact expected payment fields are revalidated before
+the existing settlement verifier runs. A transient verifier failure leaves the
+workflow unchanged and retryable. Retry never requests another receipt or vault
+signature, prepares another payment, or invokes external submission. Optimistic
+workflow versions and the audit-event primary key allow one concurrent attempt
+to persist the single `SUBMITTED -> SETTLED` transition.
 
 ### Approval is bound to an exact action
 
-Approval covers a canonical payload containing the recipient, amount, asset,
-invoice hash, policy version, nonce, and expiry. Changing any bound field
-invalidates the approval.
+`attestpay.authorization-receipt.v1` is a pure domain record. Its fixed-order
+SHA-256 payload binds the schema, canonical decision hash, policy-definition
+hash, policy-input hash, authorizing outcome, authorizer, intended Arc chain,
+vault, recipient, USDC token, amount in base units, payment reference, nonce,
+issue time, and expiry. Only `AUTO_APPROVED` and `HUMAN_APPROVED` are
+authorizing outcomes; blocked or still-pending policy decisions cannot be
+represented as valid receipts.
+
+The Arc infrastructure boundary converts that record to EIP-712. The typed
+message repeats every receipt field and includes the canonical SHA-256 receipt
+hash. The EIP-712 domain independently binds the same chain ID and vault as the
+verifying contract. Local verification validates canonical form, compares the
+complete expected execution context, enforces an inclusive issue time and
+exclusive expiry, recovers the EVM signer, and compares it with the canonical
+expected authorizer. Malformed signatures, wrong signers, field mutation,
+address ambiguity, and cross-chain, cross-vault, cross-token, cross-recipient,
+amount, nonce, or decision-context reuse fail with typed result codes suitable
+for future audit events.
+
+Replay uniqueness is scoped to authorizer, chain, vault, and nonce. The
+application port performs one atomic consume only after signature and context
+verification. The SQLite repository enforces a unique replay key in the same
+`BEGIN IMMEDIATE` transaction that persists the `AUTHORIZED` workflow version
+and audit event. Optimistic versions reject concurrent stale transitions. The
+in-memory adapter remains only for focused verifier tests. A storage exception
+fails closed.
+
+The application receipt and the deployed vault's execution-specific EIP-712
+authorization remain distinct artifacts but are now linked deterministically.
+The onchain `invoiceHash` is the policy-input digest, while `policyHash` is the
+complete canonical application-receipt digest. The payment ID is domain-separated
+over the receipt and replay key. The prepared vault call and idempotency key are
+persisted before Circle submission; settlement stores the independently verified
+Arc evidence. Receipt verification alone is still not proof of execution.
+
+### Deployment context is server-owned
+
+The application receives one typed trusted deployment context from startup:
+`ARC_TESTNET_CHAIN.id`, the configured `ATTESTPAY_VAULT_ADDRESS`, and
+`ARC_TESTNET_USDC_ADDRESS`. Workflow and receipt values are untrusted stored
+claims for this comparison; they never define their own expected context.
+Authorization checks the context before Circle receipt signing. Execution checks
+it again before vault derivation, vault signing, calldata preparation, and
+submission. Reconciliation repeats the same validation before settlement reads.
+EVM address comparison is canonical, so casing cannot create a false mismatch.
+
+### The local API owns mutations
+
+The Node HTTP interface binds to `127.0.0.1`, requires a constant-time compared
+bearer token for every workflow read or mutation, limits JSON request bodies,
+and serves static assets with a restrictive Content Security Policy. Browser
+code can request approval, receipt signing, or execution but cannot directly
+change state, construct trusted addresses, or hold wallet credentials. The
+single operator token is suitable only for the local prototype. The server
+derives audit attribution from a validated `ATTESTPAY_OPERATOR_ID`, generates
+approval IDs itself, and ignores browser-supplied identity fields. This is one
+configured local operator identity, not proof of which individual human acted.
+Deployment requires authenticated user identities, role assignment, sessions,
+CSRF protection if cookies are adopted, and per-user audit attribution.
 
 ### Circle is behind a port
 
@@ -225,11 +327,13 @@ general-purpose contract security components.
 - Secrets come from environment variables locally and a secrets manager in a
   deployed environment.
 - Generated wallet identifiers are stored in `.env.local` only during the
-  integration spike. Application runtime state will move to migration-managed
-  persistence when the database layer begins.
-- Idempotency keys are durable application data. Payment idempotency records
-  will be stored transactionally with payment attempts rather than generated
-  transiently in a request handler.
+  integration spike. The operations server itself does not automatically load
+  that file.
+- Local product state uses migration-managed SQLite under ignored `local-state/`
+  by default. It stores complete workflow snapshots, ordered audit events, and
+  unique authorization replay keys. PostgreSQL remains the deployment target.
+- Idempotency keys are generated before submission and persisted with the
+  payment workflow and prepared call.
 - During the external integration spike, ignored `local-state/` records persist
   each test-transfer payload and idempotency key before Circle is called. This is
   crash-safe retry scaffolding, not the final system of record.
@@ -257,3 +361,27 @@ general-purpose contract security components.
    validity window, and signer.
 10. Use OpenZeppelin Contracts and Hardhat's native Solidity/fuzz test runner
     instead of implementing cryptography or an EVM test harness.
+11. Make independently verified vendor records the sole source of trusted
+    recipient wallets; invoice recipients remain untrusted comparison inputs.
+12. Use SHA-256 over explicit versioned arrays for invoice fingerprints, policy
+    definitions, canonical policy inputs, and ordered policy decisions; bigint
+    amounts are encoded as decimal strings.
+13. Require callers to supply the canonical evaluation instant and daily spend
+    records so the policy engine remains clock-free and deterministic.
+14. Hash authorization receipts with the existing versioned fixed-order
+    canonical format, then sign the complete receipt through EIP-712 at the Arc
+    boundary; domain receipt types do not import `viem`.
+15. Consume replay keys atomically only after local context, time-window, and
+    signer verification; persistence failures deny authorization.
+16. Use built-in SQLite for the dependency-free local product slice and retain
+    PostgreSQL as the deployment persistence decision.
+17. Derive the vault instruction only from a verified product receipt and make
+    the vault policy hash equal the complete receipt digest.
+18. Keep all browser mutations behind a bearer-protected backend; never expose
+    wallet credentials or make frontend state authoritative.
+19. Treat Arc chain ID, configured vault, and canonical Arc USDC as server-owned
+    deployment truth and recheck them at authorization, execution, and retry.
+20. Attribute local approvals to a configured server-side operator and generate
+    approval IDs internally; do not accept human identity claims from browser JSON.
+21. Treat `SUBMITTED` as reconciliation-only and preserve its original payment
+    evidence across sanitized transient verification failures.

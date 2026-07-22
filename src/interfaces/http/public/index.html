@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>AttestPay Operations</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AttestPay home">AttestPay<span>.</span></a>
+      <p>Authorization operations</p>
+      <button id="connectButton" class="quiet">Connect</button>
+    </header>
+    <main class="workspace">
+      <section class="queue" aria-labelledby="queueTitle">
+        <div class="section-heading">
+          <div><span class="eyebrow">Payment queue</span><h1 id="queueTitle">Decisions awaiting proof</h1></div>
+          <span id="queueCount" class="count">0</span>
+        </div>
+        <div id="queueList" class="queue-list" aria-live="polite"></div>
+      </section>
+      <section id="inspector" class="inspector empty" aria-live="polite">
+        <div class="empty-copy"><span>AP</span><h2>Select a payment</h2><p>Review its policy evidence, authorization boundary, and settlement trail.</p></div>
+      </section>
+    </main>
+    <dialog id="connectDialog">
+      <form method="dialog">
+        <span class="eyebrow">Local operator session</span>
+        <h2>Connect to the backend</h2>
+        <p>The token stays in this browser tab and is never written to the page URL.</p>
+        <label>Operator token<input id="tokenInput" type="password" autocomplete="off" minlength="20" required /></label>
+        <div class="dialog-actions"><button value="cancel" class="quiet">Cancel</button><button id="saveToken" value="default">Connect</button></div>
+      </form>
+    </dialog>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

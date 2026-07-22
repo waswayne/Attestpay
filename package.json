@@ -9,6 +9,8 @@
     "test": "tsx --test tests/**/*.test.ts",
     "test:contract": "hardhat test solidity",
     "test:all": "npm run test && npm run test:contract",
+    "app:start": "node --import=tsx src/interfaces/http/start-payment-workflow.server.ts",
+    "app:seed": "node --import=tsx scripts/seed-demo-workflows.ts",
     "contract:compile": "hardhat compile",
     "circle:generate-secret": "tsx scripts/circle/generate-entity-secret.ts",
     "circle:register-secret": "node --env-file=.env.local --import=tsx scripts/circle/register-entity-secret.ts",

@@ -27,3 +27,15 @@ export function parseUsdcAmount(amount: string): bigint {
 
   return atomicUnits;
 }
+
+export function formatUsdcAmount(amountBaseUnits: bigint): string {
+  if (amountBaseUnits <= 0n) {
+    throw new Error("USDC amount must be greater than zero.");
+  }
+  const whole = amountBaseUnits / 1_000_000n;
+  const fraction = (amountBaseUnits % 1_000_000n)
+    .toString()
+    .padStart(USDC_DECIMALS, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}

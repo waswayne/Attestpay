@@ -11,10 +11,8 @@ import type {
   VaultRecipientApprovalEvidence,
 } from "../../application/ports/settlement-verifier.port.js";
 import { AUTHORIZATION_REFERENCE_PATTERN } from "../../domain/payments/authorization-reference.js";
-import {
-  createVaultPaymentAuthorization,
-  type VaultPaymentAuthorization,
-} from "../../domain/payments/vault-payment-authorization.js";
+import type { VaultPaymentAuthorization } from "../../domain/payments/vault-payment-authorization.js";
+import { createVaultPaymentAuthorization } from "../arc/create-vault-payment-authorization.js";
 import { evmAddressSchema, transactionHashSchema } from "../../shared/validation/evm.js";
 
 const stateDirectory = new URL("../../../local-state/vault-operations/", import.meta.url);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createVaultPaymentAuthorization } from "../../../src/domain/payments/vault-payment-authorization.js";
+import { createVaultPaymentAuthorization } from "../../../src/infrastructure/arc/create-vault-payment-authorization.js";
 
 const input = {
   vaultAddress: "0x1111111111111111111111111111111111111111" as const,
